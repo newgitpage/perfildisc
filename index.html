@@ -4,27 +4,26 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Teste DISC - Quiz</title>
-<link rel="stylesheet" href="css/style.css"> <!-- Seu CSS baseado no modelo -->
+<link rel="stylesheet" href="css/style.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<style>
-/* Exemplo de estilo mínimo baseado no seu modelo */
-body { font-family: Arial, sans-serif; background-color:#f5f5f5; color:#333; margin:0; padding:0; }
-.container { max-width:800px; margin:0 auto; padding:20px; background:#fff; box-shadow:0 0 10px rgba(0,0,0,0.1); }
-h1,h2 { text-align:center; color:#1f4e79; }
-button { background-color:#1f4e79; color:white; border:none; padding:10px 20px; margin:5px; cursor:pointer; border-radius:5px; }
-button:hover { background-color:#145a96; }
-.progress { text-align:right; margin-bottom:10px; font-weight:bold; }
-.question { font-size:1.2em; margin-bottom:15px; }
-.answers { display:flex; flex-direction:column; }
-.answers label { margin-bottom:8px; cursor:pointer; }
-#resultSection { display:none; }
-</style>
 </head>
 <body>
+
+<!-- Header fixo -->
+<header>
+  <nav>
+    <a href="index.html">Início</a>
+    <a href="about.html">Sobre o Teste</a>
+    <a href="famous.html">Pessoas Famosas</a>
+  </nav>
+</header>
+
 <div class="container">
   <h1>Teste DISC</h1>
+
+  <!-- Quiz -->
   <div id="quizSection">
     <div class="progress" id="progressText">Pergunta 1 de 40</div>
     <div class="question" id="questionText"></div>
@@ -35,6 +34,7 @@ button:hover { background-color:#145a96; }
     </div>
   </div>
 
+  <!-- Resultado -->
   <div id="resultSection">
     <h2>Seu Resultado DISC</h2>
     <canvas id="discChart" width="400" height="200"></canvas>
@@ -177,7 +177,6 @@ function showResult(){
     options:{responsive:true, scales:{y:{beginAtZero:true}}}
   });
 
-  // Botão PDF
   document.getElementById('downloadPdfBtn').onclick = function(){
     html2canvas(document.getElementById('resultSection')).then(canvas=>{
       const imgData = canvas.toDataURL('image/png');
