@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teste DISC - Quiz</title>
+<link rel="stylesheet" href="css/style.css"> <!-- Seu CSS baseado no modelo -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* Exemplo de estilo mínimo baseado no seu modelo */
+body { font-family: Arial, sans-serif; background-color:#f5f5f5; color:#333; margin:0; padding:0; }
+.container { max-width:800px; margin:0 auto; padding:20px; background:#fff; box-shadow:0 0 10px rgba(0,0,0,0.1); }
+h1,h2 { text-align:center; color:#1f4e79; }
+button { background-color:#1f4e79; color:white; border:none; padding:10px 20px; margin:5px; cursor:pointer; border-radius:5px; }
+button:hover { background-color:#145a96; }
+.progress { text-align:right; margin-bottom:10px; font-weight:bold; }
+.question { font-size:1.2em; margin-bottom:15px; }
+.answers { display:flex; flex-direction:column; }
+.answers label { margin-bottom:8px; cursor:pointer; }
+#resultSection { display:none; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Teste DISC</h1>
+  <div id="quizSection">
+    <div class="progress" id="progressText">Pergunta 1 de 40</div>
+    <div class="question" id="questionText"></div>
+    <div class="answers" id="answersContainer"></div>
+    <div>
+      <button id="prevBtn" style="display:none;">Anterior</button>
+      <button id="nextBtn">Próxima</button>
+    </div>
+  </div>
+
+  <div id="resultSection">
+    <h2>Seu Resultado DISC</h2>
+    <canvas id="discChart" width="400" height="200"></canvas>
+    <div id="reportText" style="margin-top:20px;"></div>
+    <button id="downloadPdfBtn">Baixar / Imprimir PDF</button>
+  </div>
+</div>
+
+<script>
+// ===============================
+// QUESTÕES
+// ===============================
+const questions = [
+  { id:1, text:"Eu corro para alcançar mais rápido os meus objetivos.", factor:"D" },
+  { id:2, text:"Eu gosto de fazer parte da grande maioria.", factor:"S" },
+  { id:3, text:"Eu hesito em criticar as ideias das pessoas.", factor:"S" },
+  { id:4, text:"Sou emocionalmente reservado.", factor:"C" },
+  { id:5, text:"Eu gosto de chamar as pessoas pelos seus sobrenomes.", factor:"C" },
+  { id:6, text:"Eu quero que os estranhos me adorem.", factor:"I" },
+  { id:7, text:"Eu só quero que todos sejam iguais.", factor:"S" },
+  { id:8, text:"Eu gosto de informações bem detalhadas.", factor:"C" },
+  { id:9, text:"Eu coloco pressão nas pessoas.", factor:"D" },
+  { id:10, text:"Eu gosto de fazer brincadeiras com as pessoas.", factor:"I" },
+  { id:11, text:"Eu gosto de agir diplomaticamente.", factor:"S" },
+  { id:12, text:"Eu faço de tudo para evitar erros.", factor:"C" },
+  { id:13, text:"Eu exalto as minhas virtudes.", factor:"I" },
+  { id:14, text:"Eu rio alto.", factor:"I" },
+  { id:15, text:"Eu tenho uma palavra de conforto para todos.", factor:"S" },
+  { id:16, text:"Eu sou sempre precavido.", factor:"C" },
+  { id:17, text:"Eu sempre penso em novas maneiras para ganhar dinheiro.", factor:"D" },
+  { id:18, text:"Eu quero experimentar de tudo ao menos uma vez.", factor:"I" },
+  { id:19, text:"Eu acredito que as pessoas são bem intencionadas na maioria das vezes.", factor:"S" },
+  { id:20, text:"Eu sou organizado e disciplinado.", factor:"C" },
+  { id:21, text:"Eu repreendo as pessoas quando vejo que elas estão mentindo ou exagerando.", factor:"D" },
+  { id:22, text:"Eu busco aventura.", factor:"I" },
+  { id:23, text:"Eu nunca sonegaria impostos.", factor:"C" },
+  { id:24, text:"Eu não gosto de jogar conversa fora.", factor:"D" },
+  { id:25, text:"Eu quero o reconhecimento que eu mereço.", factor:"I" },
+  { id:26, text:"Eu gosto de chamar a atenção.", factor:"I" },
+  { id:27, text:"Eu acredito que cooperação é mais importante do que competição.", factor:"S" },
+  { id:28, text:"Eu não gosto quando as pessoas fazem mudanças sem razão alguma.", factor:"C" },
+  { id:29, text:"Eu me dedico para que ninguém me deixe pra trás.", factor:"D" },
+  { id:30, text:"Eu sempre vejo humor em qualquer situação.", factor:"I" },
+  { id:31, text:"Eu nunca faço autopromoção.", factor:"I", reverse:true },
+  { id:32, text:"Eu adoro ordem e regularidade.", factor:"C" },
+  { id:33, text:"Eu tenho uma grande necessidade por poder.", factor:"D" },
+  { id:34, text:"Eu adoro festas lotadas.", factor:"I" },
+  { id:35, text:"Eu odeio ser insistente com as pessoas.", factor:"S" },
+  { id:36, text:"Minha primeira reação a uma ideia é ver as suas falhas.", factor:"C" },
+  { id:37, text:"Eu tento ser melhor do que os outros.", factor:"D" },
+  { id:38, text:"Eu prefiro participar de algo intensamente do que ser um espectador.", factor:"D" },
+  { id:39, text:"Se todos gostam de algo, eu provavelmente vou gostar também.", factor:"S" },
+  { id:40, text:"Eu geralmente vou embora de festas cedo.", factor:"I", reverse:true }
+];
+
+// ===============================
+// VARIÁVEIS
+// ===============================
+let currentQuestion = 0;
+const answers = {};
+
+// ===============================
+// FUNÇÕES
+// ===============================
+function showQuestion() {
+  const q = questions[currentQuestion];
+  document.getElementById('questionText').innerText = q.text;
+  const container = document.getElementById('answersContainer');
+  container.innerHTML = '';
+  const options = [
+    { text:"Concordo totalmente", value:5 },
+    { text:"Concordo parcialmente", value:4 },
+    { text:"Neutro", value:3 },
+    { text:"Discordo parcialmente", value:2 },
+    { text:"Discordo totalmente", value:1 }
+  ];
+  options.forEach(opt => {
+    const label = document.createElement('label');
+    const radio = document.createElement('input');
+    radio.type='radio';
+    radio.name='answer';
+    radio.value=opt.value;
+    if(answers[q.id]===opt.value) radio.checked=true;
+    label.appendChild(radio);
+    label.appendChild(document.createTextNode(' '+opt.text));
+    container.appendChild(label);
+  });
+  document.getElementById('progressText').innerText = `Pergunta ${currentQuestion+1} de ${questions.length}`;
+  document.getElementById('prevBtn').style.display = currentQuestion===0?'none':'inline-block';
+  document.getElementById('nextBtn').innerText = currentQuestion===questions.length-1?'Ver Resultado':'Próxima';
+}
+
+function saveAnswer() {
+  const radios = document.getElementsByName('answer');
+  for(let r of radios){
+    if(r.checked){
+      answers[questions[currentQuestion].id] = parseInt(r.value);
+      return true;
+    }
+  }
+  alert('Por favor, selecione uma opção.');
+  return false;
+}
+
+function calculateResult() {
+  const scores={D:0,I:0,S:0,C:0};
+  questions.forEach(q=>{
+    let v = answers[q.id];
+    if(q.reverse) v = 6 - v;
+    scores[q.factor] += v;
+  });
+  const sorted = Object.entries(scores).sort((a,b)=>b[1]-a[1]);
+  return {scores, primary:sorted[0][0], secondary:sorted[1][0]};
+}
+
+function generateReport(result){
+  const descriptions = {
+    D:"Dominância (D) – Pessoas assertivas, focadas em resultados, líderes naturais.",
+    I:"Influência (I) – Pessoas comunicativas, sociáveis e entusiastas.",
+    S:"Estabilidade (S) – Pessoas calmas, cooperativas e confiáveis.",
+    C:"Conformidade (C) – Pessoas detalhistas, organizadas e analíticas."
+  };
+  return `<p>Perfil Primário: <strong>${result.primary}</strong> - ${descriptions[result.primary]}</p>
+          <p>Perfil Secundário: <strong>${result.secondary}</strong> - ${descriptions[result.secondary]}</p>`;
+}
+
+function showResult(){
+  document.getElementById('quizSection').style.display='none';
+  document.getElementById('resultSection').style.display='block';
+  const result = calculateResult();
+  document.getElementById('reportText').innerHTML = generateReport(result);
+
+  const ctx = document.getElementById('discChart').getContext('2d');
+  new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:['D','I','S','C'],
+      datasets:[{label:'Pontuação', data:[result.scores.D,result.scores.I,result.scores.S,result.scores.C], backgroundColor:['#FF5733','#FFC300','#33FF57','#3357FF']}]
+    },
+    options:{responsive:true, scales:{y:{beginAtZero:true}}}
+  });
+
+  // Botão PDF
+  document.getElementById('downloadPdfBtn').onclick = function(){
+    html2canvas(document.getElementById('resultSection')).then(canvas=>{
+      const imgData = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF();
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save('resultado_DISC.pdf');
+    });
+  };
+}
+
+// ===============================
+// EVENTOS
+// ===============================
+document.getElementById('nextBtn').addEventListener('click',()=>{
+  if(saveAnswer()){
+    if(currentQuestion<questions.length-1){
+      currentQuestion++;
+      showQuestion();
+    }else{
+      showResult();
+    }
+  }
+});
+document.getElementById('prevBtn').addEventListener('click',()=>{
+  if(currentQuestion>0){
+    currentQuestion--;
+    showQuestion();
+  }
+});
+
+// ===============================
+// INICIALIZA
+// ===============================
+showQuestion();
+</script>
+</body>
+</html>
